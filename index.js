@@ -1,52 +1,62 @@
 const WebSocket = require("ws");
-const { v4: uuid } = require("uuid");
+const { Game } = require("./game");
 
 const server = new WebSocket.Server({ port: 8080 });
-const gameId = '592f6e50-235d-4785-8f82-21b66738f3fb';
+player1Sockets = [];
+games = [];
 
 server.on("connection", (socket) => {
-  let player1 = false;
-  let player2 = false;
-  let toSendMessage = {
-    player: null,
-    message: "",
-  };
+  socket.on("message", (playerString) => {
+    const player = JSON.parse(playerString);
 
-  //JOINING
-  socket.on("message", (message) => {
-    const receivedMessage = JSON.parse(message);
-
-    if (receivedMessage.player === 1 && !player1) {
-      player1 = true;
-
-      toSendMessage.player = 1;
-      toSendMessage.message = gameId;
+    if (
+      player.player === 1 &&
+      player.message !== "START" &&
+      player.message !== "REDIRECT"
+    ) {
+      socket.player = player;
+      player1Sockets.push(socket);
+      console.log(0);
     }
 
-    if (receivedMessage.player === 2 && !player2) {
-      player2 = true;
-
-      if (receivedMessage.gameId === gameId) {
-        toSendMessage.player = 'ALL';
-        toSendMessage.message = "START";
-    } else {
-        toSendMessage.player = null;
-        toSendMessage.message = "INVALID ID";
+    if (player.player === 1 && player.message === "REDIRECT") {
+      const game = findGame(player.gameId);
+      if (game) {
+        console.log(2);
+        game.redirect();
       }
     }
-    socket.send(JSON.stringify(toSendMessage));
-    console.log(receivedMessage);
+
+    if (player.player === 2) {
+      const player1Socket = player1Sockets.find(
+        (playerSocket) => playerSocket.player?.gameId === player.gameId
+      );
+      console.log(1);
+      if (player1Socket) {
+        socket.player = player;
+        const newGame = new Game(player.gameId, player1Socket, socket);
+        games.push(newGame);
+        newGame.start();
+      }
+    }
+
+    if (player.message === "PLAY") {
+      const game = findGame(player.gameId);
+      if (game) {
+        const { gridIdx, player } = player;
+        game.play(gridIdx, player);
+      }
+    }
+
+    if (player.message === "GAME") {
+      const game = findGame(player.gameId);
+      if (game) {
+        game.getPlayers();
+      }
+    }
   });
-
-  socket.on('message', message => {
-    const receivedMessage = JSON.parse(message);
-      if(receivedMessage.player === 1 && receivedMessage.message === 'REDIRECT PLAYER 2'){
-          const toSendMessage = {
-              player: 2,
-              message: receivedMessage.message
-          }
-          socket.send(JSON.stringify(toSendMessage))
-      }
-  })
 });
 
+function findGame(gameId) {
+  return games.find((game) => game.id === gameId);
+}
