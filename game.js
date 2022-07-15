@@ -1,14 +1,15 @@
-class Game {
+const { START, REDIRECT, GAME, PLAYED } = require("./messages");
+const letters = {
+  1: "X",
+  2: "O",
+};
+
+class WaitingRoom {
   constructor(id, player1Socket, player2Socket) {
     this.id = id;
     this.players = [player1Socket.player, player2Socket.player];
     this.player1Socket = player1Socket;
     this.player2Socket = player2Socket;
-
-    this.gridValues = Array.from({ length: 9 });
-    this.hasWinner = false;
-    this.gameOver = false;
-    this.winnerIdx = null;
   }
 
   send(message, player = "ALL") {
@@ -20,18 +21,11 @@ class Game {
     }
   }
 
-  getPlayers() {
-    this.send({
-        players:this.players,
-        message: 'GAME'
-    });
-  }
-
   start() {
     this.send(
       {
         player: 1,
-        message: "START",
+        message: START,
       },
       1
     );
@@ -41,41 +35,52 @@ class Game {
     this.send(
       {
         player: 2,
-        message: "REDIRECT",
+        message: REDIRECT,
       },
       2
     );
   }
+}
 
-  play(gridIdx, player) {
-    this.gridletters[gridIdx] = letter;
+class Game extends WaitingRoom {
+  constructor(id, player1Socket, player2Socket) {
+    super(id, player1Socket, player2Socket);
+    this.gridValues = Array.from({ length: 9 });
+    this.hasWinner = false;
+    this.gameOver = false;
+    this.winner = null;
+  }
+
+  getPlayers() {
+    this.send({
+      players: this.players,
+      message: GAME,
+    });
+  }
+
+  play(gridIdx, playerNo) {
+    this.gridValues[gridIdx] = letters[playerNo];
+    console.log("yp");
+    this.checkGridFull();
+    this.getWinner();
 
     this.send({
-      player,
+      playerNo,
       gridIdx,
-      letter: player === 1 ? "X" : "O",
-      message: "PLAYED",
+      gameOver: this.gameOver,
+      hasWinner: this.hasWinner,
+      winner: this.hasWinner ? this.winner : null,
+      message: PLAYED,
     });
-
-    this.getWinner();
-    this.checkGridFull();
-
-    if (this.gameOver) {
-      this.send({
-        gameOver: this.gameOver,
-        hasWinner: this.hasWinner,
-        winner: this.hasWinner ? this.players[this.winnerIdx] : null,
-      });
-      return;
-    }
   }
 
   checkGridFull() {
     for (let i = 0; i < this.gridValues.length; i++) {
       if (!this.gridValues[i]) {
-        this.gameOver = true;
+        return;
       }
     }
+    this.gameOver = true;
   }
 
   checkWin(letter) {
@@ -96,28 +101,28 @@ class Game {
         this.gridValues[winNumbers[i][1]] === letter &&
         this.gridValues[winNumbers[i][2]] === letter
       ) {
-        return true;
+        this.hasWinner = true;
       }
     }
-
-    return false;
   }
+
   getWinner() {
     for (let i = 0; i < 2; i++) {
-      const letter = i === 1 ? "X" : "O";
-      if (this.checkWin(letter)) {
-        (this.hasWinner = true), (this.winnerIdx = i);
+      const playerNo = i + 1;
+      const letter = letters[playerNo];
+
+      this.checkWin(letter);
+
+      if (this.hasWinner) {
+        this.winner = playerNo;
         this.gameOver = true;
+        return;
       }
     }
   }
 }
 
-// store player 1s in Array, look for match with player 2
-// if match create game
-// on start click send redirect
-// on redirect start stop loading
-
 module.exports = {
   Game,
+  WaitingRoom,
 };
