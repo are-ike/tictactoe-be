@@ -66,7 +66,7 @@ class Game extends WaitingRoom {
 
     this.send({
       playerNo,
-      gridIdx,
+      gridValues: this.gridValues,
       gameOver: this.gameOver,
       hasWinner: this.hasWinner,
       winner: this.hasWinner ? this.winner : null,
