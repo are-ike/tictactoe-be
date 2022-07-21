@@ -49,6 +49,7 @@ class Game extends WaitingRoom {
     this.hasWinner = false;
     this.gameOver = false;
     this.winner = null;
+    this.winningIdxs = []
   }
 
   getPlayers() {
@@ -60,13 +61,13 @@ class Game extends WaitingRoom {
 
   play(gridIdx, playerNo) {
     this.gridValues[gridIdx] = letters[playerNo];
-    console.log("yp");
     this.checkGridFull();
     this.getWinner();
 
     this.send({
       playerNo,
       gridValues: this.gridValues,
+      winningIdxs: this.winningIdxs,
       gameOver: this.gameOver,
       hasWinner: this.hasWinner,
       winner: this.hasWinner ? this.winner : null,
@@ -86,13 +87,13 @@ class Game extends WaitingRoom {
   checkWin(letter) {
     const winNumbers = [
       [0, 1, 2],
-      [1, 4, 7],
-      [3, 4, 5],
-      [0, 4, 8],
-      [2, 4, 6],
-      [6, 7, 8],
       [0, 3, 6],
+      [0, 4, 8],
+      [1, 4, 7],
+      [2, 4, 6],
       [2, 5, 8],
+      [3, 4, 5],
+      [6, 7, 8],
     ];
 
     for (let i = 0; i < winNumbers.length; i++) {
@@ -102,6 +103,7 @@ class Game extends WaitingRoom {
         this.gridValues[winNumbers[i][2]] === letter
       ) {
         this.hasWinner = true;
+        this.winningIdxs = winNumbers[i]
       }
     }
   }
