@@ -1,4 +1,13 @@
-const { START, REDIRECT, GAME, PLAYED } = require("./messages");
+const {
+  START,
+  REDIRECT,
+  GAME,
+  PLAYED,
+  NEWGAME,
+  NEWGAME_ACCEPT,
+  REDIRECT_ENDGAME,
+  REDIRECT_NEWGAME,
+} = require("./messages");
 const letters = {
   1: "X",
   2: "O",
@@ -49,7 +58,7 @@ class Game extends WaitingRoom {
     this.hasWinner = false;
     this.gameOver = false;
     this.winner = null;
-    this.winningIdxs = []
+    this.winningIdxs = [];
   }
 
   getPlayers() {
@@ -103,7 +112,7 @@ class Game extends WaitingRoom {
         this.gridValues[winNumbers[i][2]] === letter
       ) {
         this.hasWinner = true;
-        this.winningIdxs = winNumbers[i]
+        this.winningIdxs = winNumbers[i];
       }
     }
   }
@@ -121,6 +130,20 @@ class Game extends WaitingRoom {
         return;
       }
     }
+  }
+
+  newGame(playerNo) {
+    this.send({ playerNo, message: NEWGAME }, playerNo);
+  }
+
+  redirectOnNewGame(message) {
+    this.send(
+      {
+        message:
+          message === NEWGAME_ACCEPT ? REDIRECT_NEWGAME : REDIRECT_ENDGAME,
+      },
+      message === NEWGAME_ACCEPT ? 1 : "ALL"
+    );
   }
 }
 
